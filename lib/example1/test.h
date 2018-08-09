@@ -1,8 +1,8 @@
-#include "sample_interface.hpp"
+#include "sample_API.hpp"
 
 void do_something_else();
 
-class sample_implementation : public sample_interface {
+class sample_implementation : public sample_API {
 public:
     void do_something() override;
     int get_something() override;
@@ -11,6 +11,6 @@ private:
 };
 
 extern "C" {
-    sample_interface *  get();
-    void destroy(sample_interface *);
+    sample_API *  get();
+    void destroy(sample_API *);
 }

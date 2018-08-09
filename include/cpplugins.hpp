@@ -4,8 +4,8 @@
 #include <functional>
 #include <dlfcn.h>
 #include <iostream>
-#include "../test.h"
-#include "sample_interface.hpp"
+#include "../lib/example1/test.h"
+#include "sample_API.hpp"
 
 std::function<void()> get_logger() {
     std::cout << "Hello from plugin library.\n";
@@ -14,8 +14,8 @@ std::function<void()> get_logger() {
         std::cout << "Error: " << dlerror();
         return []() {};
     }
-    using create = sample_interface * (*) ();
-    using destroy = void(*) (sample_interface*);
+    using create = sample_API * (*) ();
+    using destroy = void(*) (sample_API*);
 
     auto create_ = reinterpret_cast<create> (dlsym(logger_lib, "get"));
     if (!create_) {
@@ -29,11 +29,11 @@ std::function<void()> get_logger() {
         return []() {};
     }
 
-    sample_interface *print = create_();
+    sample_API *print = create_();
 
     if (print) {
         std::cout << "Calling print.\n";
-        sample_interface * t = create_();
+        sample_API * t = create_();
         t->do_something();
         std::cout << t->get_something() << std::endl;
         destroy_(print);

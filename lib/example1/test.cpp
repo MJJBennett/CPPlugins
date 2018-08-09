@@ -17,11 +17,11 @@
 //    for (auto&& n : nums) std::cout << n << std::endl;
 //}
 
-sample_interface * get() {
+sample_API * get() {
     return new sample_implementation;
 }
 
-void destroy(sample_interface * s) {
+void destroy(sample_API * s) {
     delete s;
 }
 
