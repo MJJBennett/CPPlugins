@@ -9,7 +9,7 @@
 
 std::function<void()> get_logger() {
     std::cout << "Hello from plugin library.\n";
-    void * logger_lib = dlopen("./test.so", RTLD_LAZY);
+    void * logger_lib = dlopen("./libExampleLibrary.so", RTLD_LAZY);
     if (!logger_lib) {
         std::cout << "Error: " << dlerror();
         return []() {};
