@@ -6,3 +6,7 @@ int main(int argc, char* argv[]) {
     get_logger();
     return 0;
 }
+
+void do_something_else() {
+    std::cout << "something else!!\n";
+}

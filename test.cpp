@@ -39,4 +39,5 @@ int sample_implementation::get_something() {
 
 void sample_implementation::private_do_something() {
     std::cout << "Did it!\n";
+    do_something_else();
 }
