@@ -1,9 +1,14 @@
-class test_class {
+#include "sample_interface.hpp"
+
+class sample_implementation : public sample_interface {
 public:
-    test_class();
-    void _print();
+    void do_something() override;
+    int get_something() override;
+private:
+    void private_do_something();
 };
 
 extern "C" {
-    test_class print();
+    sample_interface *  get();
+    void destroy(sample_interface *);
 }
