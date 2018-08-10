@@ -3,21 +3,7 @@
 #include <vector>
 #include "test.h"
 
-//test_class::test_class() {
-//    std::cout << "Initialized a test class.\n";
-//}
-//
-//void test_class::_print() {
-//    std::cout << "Printed with test class.\n";
-//}
-//
-//test_class print() {
-//    std::cout << "Hello from test.cpp!" << std::endl;
-//    std::vector<int> nums{1,2,3};
-//    for (auto&& n : nums) std::cout << n << std::endl;
-//}
-
-sample_API * get() {
+sample_API * create() {
     return new sample_implementation;
 }
 
@@ -25,19 +11,23 @@ void destroy(sample_API * s) {
     delete s;
 }
 
-//extern void print(int, int) {
-//    std::cout << "Hello from test.cpp!" << std::endl;
-//}
-void sample_implementation::do_something() {
-    std::cout << "Doing something..." << std::endl;
-    private_do_something();
+bool sample_implementation::check_version() {
+    std::cout << "Checking application version." << std::endl;
+    int version = get_application_version();
+    if (version > 3) {
+        std::cout << "Application version is " << version << "; it may not be supported." << std::endl;
+        return false;
+    }
+    else {
+        std::cout << "Application version is " << version << "; it is supported." << std::endl;
+        return true;
+    }
 }
 
-int sample_implementation::get_something() {
-    return 5;
+int sample_implementation::process_data(int data) {
+    return data + 5;
 }
 
-void sample_implementation::private_do_something() {
-    std::cout << "Did it!\n";
-    do_something_else();
+std::string sample_implementation::get_id() {
+    return _ID;
 }

@@ -1,16 +1,19 @@
 #include "sample_API.hpp"
 
-void do_something_else();
+int get_application_version();
 
 class sample_implementation : public sample_API {
 public:
-    void do_something() override;
-    int get_something() override;
+    sample_implementation() {
+        _ID = "Sample_Plugin_1" + ((check_version()) ? std::string("_UpToDate"): std::string("_Outdated"));
+    }
+    std::string get_id() override;
+    int process_data(int) override;
 private:
-    void private_do_something();
+    bool check_version();
 };
 
 extern "C" {
-    sample_API *  get();
+    sample_API * create();
     void destroy(sample_API *);
 }
