@@ -6,15 +6,15 @@
 #include <map>
 
 #ifdef _WIN32
-#define CPPLUGINS_WINDOWS
+#define CPPLUGINS_WINDOWS 1
 #elif __APPLE__
-#define CPPLUGINS_APPLE
-#define CPPLUGINS_UNIX
+#define CPPLUGINS_APPLE 1
+#define CPPLUGINS_UNIX 1
 #elif __linux__
-#define CPPLUGINS_LINUX
-#define CPPLUGINS_UNIX
+#define CPPLUGINS_LINUX 1
+#define CPPLUGINS_UNIX 1
 #elif __unix__
-#define CPPLUGINS_UNIX
+#define CPPLUGINS_UNIX 1
 #else
 #error "Your compiler or operating system is not recognized."
 #endif
@@ -44,7 +44,7 @@ public:
         _library = (void *)LoadLibrary(_library_path.c_str(), RTLD_LAZY);
 #endif
         if (!_library) {
-            std::cout << "Could not load library " + _library_path + ": \n" << dlerror() << std::endl;
+            std::cout << "Could not load library " + _library_path + ": \n" << _get_error() << std::endl;
             return;
         }
 #ifdef CPPLUGINS_UNIX
@@ -53,7 +53,7 @@ public:
         _create = reinterpret_cast<create_t> (GetProcAddress(_library, "create"));
 #endif
         if (!_create) {
-            std::cout << "Error loading create function: " << dlerror() << std::endl;
+            std::cout << "Error loading create function: " << _get_error() << std::endl;
             _close_unsafe(_library);
             return;
         }
@@ -63,7 +63,7 @@ public:
         _destroy = reinterpret_cast<destroy_t > (GetProcAddress(_library, "destroy"));
 #endif
         if (!_destroy) {
-            std::cout << "Error loading destroy function: " << dlerror() << std::endl;
+            std::cout << "Error loading destroy function: " << _get_error() << std::endl;
             _close_unsafe(_library);
             return;
         }
@@ -105,6 +105,14 @@ private:
         dlclose(lib);
 #elif CPPLUGINS_WINDOWS
         FreeLibrary(lib);
+#endif
+    }
+
+    inline std::string _get_error() {
+#ifdef CPPLUGINS_UNIX
+        return dlerror();
+#elif CPPLUGINS_WINDOWS
+        return GetLastError();
 #endif
     }
 
