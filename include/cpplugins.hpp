@@ -41,7 +41,7 @@ public:
 #ifdef CPPLUGINS_UNIX
         _library = dlopen(_library_path.c_str(), RTLD_LAZY);
 #elif CPPLUGINS_WINDOWS
-        _library = (void *)LoadLibrary(_library_path.c_str(), RTLD_LAZY);
+        _library = LoadLibrary(_library_path.c_str());
 #endif
         if (!_library) {
             std::cout << "Could not load library " + _library_path + ": \n" << _get_error() << std::endl;
@@ -112,12 +112,36 @@ private:
 #ifdef CPPLUGINS_UNIX
         return dlerror();
 #elif CPPLUGINS_WINDOWS
-        return GetLastError();
+        //The following code is taken directly from Jamin Grey's answer here:
+        //https://stackoverflow.com/questions/1387064/how-to-get-the-error-message-from-the-error-code-returned-by-getlasterror
+        //Returns the last Win32 error, in string format. Returns an empty string if there is no error.
+        std::string GetLastErrorAsString()
+        {
+            //Get the error message, if any.
+            DWORD errorMessageID = ::GetLastError();
+            if(errorMessageID == 0)
+                return std::string(); //No error message has been recorded
+
+            LPSTR messageBuffer = nullptr;
+            size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                                         NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+
+            std::string message(messageBuffer, size);
+
+            //Free the buffer.
+            LocalFree(messageBuffer);
+
+            return message;
+        }
 #endif
     }
 
     std::map<std::string, void *> _symbols;
+#ifdef CPPLUGINS_UNIX
     void * _library = nullptr;
+#elif CPPLUGINS_WINDOWS
+    HMODULE _library = nullptr;
+#endif
     std::string _library_path;
     create_t _create = nullptr;
     destroy_t _destroy = nullptr;
