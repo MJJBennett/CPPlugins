@@ -100,13 +100,15 @@ public:
         }
     }
 private:
-    inline void _close_unsafe(void * lib) {
 #ifdef CPPLUGINS_UNIX
+    inline void _close_unsafe(void * lib) {
         dlclose(lib);
-#elif CPPLUGINS_WINDOWS
-        FreeLibrary(lib);
-#endif
     }
+#elif CPPLUGINS_WINDOWS
+    inline void _close_unsafe(HMODULE lib) {
+        FreeLibrary(lib);
+    }
+#endif
 
     inline std::string _get_error() {
 #ifdef CPPLUGINS_UNIX
