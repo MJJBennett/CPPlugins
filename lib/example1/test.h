@@ -1,14 +1,14 @@
-#include "sample_API.hpp"
+#ifndef CPPLUGINS_TEST1_H
+#define CPPLUGINS_TEST1_H
 
-int get_application_version();
+#include "sample_API.hpp"
 
 class sample_implementation : public sample_API {
 public:
-    sample_implementation() {
-        _ID = "Sample_Plugin_1" + ((check_version()) ? std::string("_UpToDate"): std::string("_Outdated"));
-    }
+    sample_implementation()=default;
     std::string get_id() override;
     int process_data(int) override;
+    void init() override;
 private:
     bool check_version();
 };
@@ -17,3 +17,5 @@ extern "C" {
     sample_API * create();
     void destroy(sample_API *);
 }
+
+#endif //CPPLUGINS_TEST1_H

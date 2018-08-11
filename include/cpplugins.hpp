@@ -25,15 +25,22 @@
 #include <windows.h>
 #endif
 
+namespace cpl {
+    std::string dl_path(const std::string& path);
+}
+
 template<typename API_T>
 class Plugin {
 public:
     using create_t = API_T * (*) ();
     using destroy_t = void(*) (API_T*);
 
-    explicit Plugin(std::string library_path) : _library_path(library_path) {}
+    explicit Plugin(std::string library_path) : _library_path(library_path) {
+        std::cout << "Created a plugin with path " << library_path << std::endl;
+    }
 
     inline void load() {
+        std::cout << "Loading plugin at " << _library_path << std::endl;
         if (is_loaded()) {
             std::cout << "Tried to load library " + _library_path + ", but it is already loaded!\n";
             return;
@@ -135,7 +142,6 @@ private:
 #endif
     }
 
-    std::map<std::string, void *> _symbols;
 #ifdef CPPLUGINS_UNIX
     void * _library = nullptr;
 #elif CPPLUGINS_WINDOWS
@@ -146,5 +152,14 @@ private:
     destroy_t _destroy = nullptr;
     API_T * api = nullptr;
 };
+
+std::string cpl::dl_path(const std::string& path) {
+    //Temporary solution for now
+#ifdef CPPLUGINS_WINDOWS
+    return path + ".dll";
+#elif CPPLUGINS_UNIX
+    return path + ".so";
+#endif
+}
 
 #endif //CPPLUGINS_CPPLUGINS_HPP

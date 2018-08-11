@@ -11,15 +11,24 @@ void destroy(sample_API * s) {
     delete s;
 }
 
+void sample_implementation::init() {
+    _ID = "Sample_Plugin_1" + ((check_version()) ? std::string("_UpToDate"): std::string("_Outdated"));
+}
+
 bool sample_implementation::check_version() {
+    using get_version_t = int (*) ();
     std::cout << "Checking application version." << std::endl;
-    int version = get_application_version();
+    if (!_symbols.count("get_application_version")) {
+        std::cout << "Application version retrieval not supported!\n";
+        return false;
+    } 
+    int version = reinterpret_cast<get_version_t>(_symbols.at("get_application_version"))();
     if (version > 3) {
-        std::cout << "Application version is " << version << "; it may not be supported." << std::endl;
+        std::cout << "Application version is " << version << "; this plugin may not be supported." << std::endl;
         return false;
     }
     else {
-        std::cout << "Application version is " << version << "; it is supported." << std::endl;
+        std::cout << "Application version is " << version << "; this plugin is supported." << std::endl;
         return true;
     }
 }
