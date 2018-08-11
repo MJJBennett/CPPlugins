@@ -10,6 +10,9 @@ int main(int argc, char* argv[]) {
     std::string plugin_path = "./lib/example1/libExampleLibrary";
     Plugin<sample_API> plugin(cpl::dl_path(plugin_path));
     plugin.load();
+#ifdef CPPLUGINS_DEBUG
+    plugin.print_state();
+#endif
     plugin->set("get_application_version", (void *)get_application_version);
     plugin->init();
     std::cout << "Plugin ID: " << plugin->get_id() << std::endl;

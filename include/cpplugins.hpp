@@ -25,6 +25,8 @@
 #include <windows.h>
 #endif
 
+#define CPPLUGINS_DEBUG 1
+
 namespace cpl {
     std::string dl_path(const std::string& path);
 }
@@ -82,6 +84,10 @@ public:
             std::cout << "Error: Was unable to load API for library." << std::endl;
             _close_unsafe(_library);
         }
+
+#ifdef CPPLUGINS_DEBUG
+        print_state();
+#endif
     }
 
     inline bool is_loaded() {
@@ -106,13 +112,23 @@ public:
             _close_unsafe(_library);
         }
     }
+
+#ifdef CPPLUGINS_DEBUG
+    inline void print_state() {
+        if (!_library || !_create || !_destroy || !api) std::cout << "State is NULL." << std::endl;
+        else std::cout << "Plugin state is stable." << std::endl;
+    }
+#endif
+
 private:
 #ifdef CPPLUGINS_UNIX
     inline void _close_unsafe(void * lib) {
+        std::cout << "Warning: Closing library for plugin " << _library_path << std::endl;
         dlclose(lib);
     }
 #elif CPPLUGINS_WINDOWS
     inline void _close_unsafe(HMODULE lib) {
+        std::cout << "Warning: Closing library for plugin " << _library_path << std::endl;
         FreeLibrary(lib);
     }
 #endif
