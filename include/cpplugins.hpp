@@ -1,3 +1,5 @@
+#include <utility>
+
 #ifndef CPPLUGINS_CPPLUGINS_HPP
 #define CPPLUGINS_CPPLUGINS_HPP
 
@@ -29,31 +31,45 @@
 
 namespace cpl {
     std::string dl_path(const std::string& path);
+
+    template<typename f>
+    void * make_void(f function_reference);
 }
 
-template<typename API_T>
+namespace cpl {
+template<typename API_T, typename log_t = void>
 class Plugin {
 public:
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Public type definitions.
+
+    // Function used to create an instance of the API
     using create_t = API_T * (*) ();
+
     using destroy_t = void(*) (API_T*);
 
-    explicit Plugin(std::string library_path) : _library_path(library_path) {
-        std::cout << "Created a plugin with path " << library_path << std::endl;
-    }
+public:
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Public member functions.
+
+    explicit Plugin(std::string library_path) : library_path_(std::move(library_path)) {}
+
+    explicit Plugin(std::string library_path, typename std::enable_if<!std::is_void_v<log_t>> logger) :
+        library_path_(std::move(library_path), logger_(logger)) {}
 
     inline void load() {
-        std::cout << "Loading plugin at " << _library_path << std::endl;
+        std::cout << "Loading plugin at " << library_path_ << std::endl;
         if (is_loaded()) {
-            std::cout << "Tried to load library " + _library_path + ", but it is already loaded!\n";
+            std::cout << "Tried to load library " + library_path_ + ", but it is already loaded!\n";
             return;
         }
 #ifdef CPPLUGINS_UNIX
-        _library = dlopen(_library_path.c_str(), RTLD_LAZY);
+        _library = dlopen(library_path_.c_str(), RTLD_LAZY);
 #elif CPPLUGINS_WINDOWS
-        _library = LoadLibrary(_library_path.c_str());
+        _library = LoadLibrary(library_path_.c_str());
 #endif
         if (!_library) {
-            std::cout << "Could not load library " + _library_path + ": \n" << _get_error() << std::endl;
+            std::cout << "Could not load library " + library_path_ + ": \n" << get_error() << std::endl;
             return;
         }
 #ifdef CPPLUGINS_UNIX
@@ -62,7 +78,7 @@ public:
         _create = reinterpret_cast<create_t> (GetProcAddress(_library, "create"));
 #endif
         if (!_create) {
-            std::cout << "Error loading create function: " << _get_error() << std::endl;
+            std::cout << "Error loading create function: " << get_error() << std::endl;
             _close_unsafe(_library);
             return;
         }
@@ -72,7 +88,7 @@ public:
         _destroy = reinterpret_cast<destroy_t > (GetProcAddress(_library, "destroy"));
 #endif
         if (!_destroy) {
-            std::cout << "Error loading destroy function: " << _get_error() << std::endl;
+            std::cout << "Error loading destroy function: " << get_error() << std::endl;
             _close_unsafe(_library);
             return;
         }
@@ -121,19 +137,22 @@ public:
 #endif
 
 private:
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Private helper functions.
+
 #ifdef CPPLUGINS_UNIX
     inline void _close_unsafe(void * lib) {
-        std::cout << "Warning: Closing library for plugin " << _library_path << std::endl;
+        std::cout << "Warning: Closing library for plugin " + library_path_;
         dlclose(lib);
     }
 #elif CPPLUGINS_WINDOWS
     inline void _close_unsafe(HMODULE lib) {
-        std::cout << "Warning: Closing library for plugin " << _library_path << std::endl;
+        std::cout << "Warning: Closing library for plugin " << library_path_ << std::endl;
         FreeLibrary(lib);
     }
 #endif
 
-    inline std::string _get_error() {
+    inline std::string get_error() {
 #ifdef CPPLUGINS_UNIX
         return dlerror();
 #elif CPPLUGINS_WINDOWS
@@ -158,16 +177,24 @@ private:
 #endif
     }
 
+private:
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Private member variables.
+
 #ifdef CPPLUGINS_UNIX
     void * _library = nullptr;
 #elif CPPLUGINS_WINDOWS
     HMODULE _library = nullptr;
 #endif
-    std::string _library_path;
+    std::string library_path_;
     create_t _create = nullptr;
     destroy_t _destroy = nullptr;
     API_T * api = nullptr;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// End class definition: Plugin
 };
+}
 
 std::string cpl::dl_path(const std::string& path) {
     //Temporary solution for now
@@ -176,6 +203,11 @@ std::string cpl::dl_path(const std::string& path) {
 #elif CPPLUGINS_UNIX
     return path + ".so";
 #endif
+}
+
+template<typename f>
+void * cpl::make_void(f function_reference) {
+    return (void *)function_reference;
 }
 
 #endif //CPPLUGINS_CPPLUGINS_HPP

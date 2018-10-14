@@ -6,14 +6,14 @@ int get_application_version() {
     return 4;
 }
 
-int main(int argc, char* argv[]) {
+int main() {
     std::string plugin_path = "./lib/example1/libExampleLibrary";
-    Plugin<sample_API> plugin(cpl::dl_path(plugin_path));
+    cpl::Plugin<sample_API> plugin(cpl::dl_path(plugin_path));
     plugin.load();
 #ifdef CPPLUGINS_DEBUG
     plugin.print_state();
 #endif
-    plugin->set("get_application_version", (void *)get_application_version);
+    plugin->set("get_application_version", cpl::make_void(get_application_version));
     plugin->init();
     std::cout << "Plugin ID: " << plugin->get_id() << std::endl;
     std::cout << "Plugin processes 5 into: " << plugin->process_data(5) << std::endl;
