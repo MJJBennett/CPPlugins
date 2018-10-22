@@ -1,17 +1,22 @@
+#include <utility>
+
 #ifndef CPPLUGINS_CPPLUGINS_HPP
 #define CPPLUGINS_CPPLUGINS_HPP
 
 #include <utility>
 #include <functional>
 #include <iostream>
+#include <optional>
 #include <map>
 
 #if defined _WIN32
-#define CPPLUGINS_WINDOWS 1
 #include <windows.h>
+#define CPPLUGINS_WINDOWS 1
+#define LIBTYPE HMODULE
 #elif defined __APPLE__ || __linux__ || __unix__
-#define CPPLUGINS_UNIX 1
 #include <dlfcn.h>
+#define CPPLUGINS_UNIX 1
+#define LIBTYPE void *
 #else
 #error "Your compiler or operating system is not recognized."
 #endif
@@ -23,74 +28,104 @@ namespace cpl {
 
     template<typename f>
     void * make_void(f function_reference);
+
+    enum class Flag : uint8_t {
+        None = 0,
+        Late_Load = 1,
+        All = 255
+    };
+
+    enum class State : uint32_t {
+        Success = 0,
+        Fail = 1,
+        Library_Not_Found = 3,
+        Create_Not_Found = 5,
+        Destroy_Not_Found = 9,
+        API_Not_Found = 17,
+    };
+
+    Flag operator&(Flag lhs, Flag rhs) {
+        return static_cast<Flag>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
+    }
+
+    bool operator!(Flag hs) {
+        return static_cast<bool>(hs);
+    }
+
+    void AddState(std::optional<State> &state, State flag) {
+        if (!state) {
+            state = State{flag};
+        } else {
+            state = static_cast<State>(static_cast<uint32_t>(*state) & static_cast<uint32_t>(flag));
+        }
+    }
 }
 
 namespace cpl {
 template<typename API_T>
 class Plugin {
-public: // Public type definitions.
-
-
     // Function used to create an instance of the API
     using create_t = API_T * (*) ();
 
+    // Function used to destroy an instance of the API
     using destroy_t = void(*) (API_T*);
 
 public: // Public member functions.
 
-    explicit Plugin(std::string library_path) : library_path_(std::move(library_path)) {}
+    // Constructor
+    explicit Plugin(std::string library_path, std::optional<State> state, Flag options = Flag::None) :
+            state_(std::move(state)), options_(options), library_path_(std::move(library_path)) {
+        if (!(options_ & Flag::Late_Load))
+            load();
+    }
 
-    inline void load() {
-        std::cout << "Loading plugin at " << library_path_ << std::endl;
-        if (is_loaded()) {
-            std::cout << "Tried to load library " + library_path_ + ", but it is already loaded!\n";
-            return;
-        }
+    // Load
+    void load() {
+        // Attempt to open the library
 #ifdef CPPLUGINS_UNIX
         library_ = dlopen(library_path_.c_str(), RTLD_LAZY);
 #elif CPPLUGINS_WINDOWS
         library_ = LoadLibrary(library_path_.c_str());
 #endif
+
         if (!library_) {
-            std::cout << "Could not load library " + library_path_ + ": \n" << get_error() << std::endl;
+            AddState(state_, State::Library_Not_Found);
             return;
         }
+
+        // Attempt to find the 'create' function
 #ifdef CPPLUGINS_UNIX
         create_ = reinterpret_cast<create_t> (dlsym(library_, "create"));
 #elif CPPLUGINS_WINDOWS
         create_ = reinterpret_cast<create_t> (GetProcAddress(library_, "create"));
 #endif
+
         if (!create_) {
-            std::cout << "Error loading create function: " << get_error() << std::endl;
+            AddState(state_, State::Create_Not_Found);
             _close_unsafe(library_);
             return;
         }
+
+        // Attempt to find the 'delete' function
 #ifdef CPPLUGINS_UNIX
         destroy_ = reinterpret_cast<destroy_t > (dlsym(library_, "destroy"));
 #elif CPPLUGINS_WINDOWS
         destroy_ = reinterpret_cast<destroy_t > (GetProcAddress(library_, "destroy"));
 #endif
+
         if (!destroy_) {
-            std::cout << "Error loading destroy function: " << get_error() << std::endl;
+            AddState(state_, State::Destroy_Not_Found);
             _close_unsafe(library_);
             return;
         }
-        std::cout << "Successfully loaded plugin library." << std::endl;
 
-        //Now load the API
+        //Now, load the API
         api_ = create_();
         if (!api_) {
-            std::cout << "Error: Was unable to load API for library." << std::endl;
+            AddState(state_, State::API_Not_Found);
             _close_unsafe(library_);
+            return;
         }
-
-#ifdef CPPLUGINS_DEBUG
-        print_state();
-#endif
-    }
-
-    inline bool is_loaded() {
-        return library_ != nullptr;
     }
 
     API_T * operator->() const {
@@ -98,40 +133,27 @@ public: // Public member functions.
     }
 
     ~Plugin() {
-        if (api_) {
-            if (!library_ || !destroy_) {
-                std::cout << "Critical error: API exists but library or destroy function do not!" << std::endl;
-            }
-            else {
+        if (library_) {
+            if (api_ && destroy_) {
                 destroy_(api_);
             }
-        }
-        if (library_) {
-            std::cout << "Closing library." << std::endl;
             _close_unsafe(library_);
         }
     }
 
-#ifdef CPPLUGINS_DEBUG
-    inline void print_state() {
-        if (!library_ || !create_ || !destroy_ || !api_) std::cout << "State is NULL." << std::endl;
-        else std::cout << "Plugin state is stable." << std::endl;
+    inline bool is_init() {
+        return library_ && create_ && destroy_ && api_;
     }
-#endif
 
 private: // Private helper functions.
 
+    inline void _close_unsafe(LIBTYPE lib) {
 #ifdef CPPLUGINS_UNIX
-    inline void _close_unsafe(void * lib) {
-        std::cout << "Warning: Closing library for plugin " + library_path_;
         dlclose(lib);
-    }
 #elif CPPLUGINS_WINDOWS
-    inline void _close_unsafe(HMODULE lib) {
-        std::cout << "Warning: Closing library for plugin " << library_path_ << std::endl;
         FreeLibrary(lib);
-    }
 #endif
+    }
 
     inline std::string get_error() {
 #ifdef CPPLUGINS_UNIX
@@ -159,12 +181,9 @@ private: // Private helper functions.
     }
 
 private: // Private member variables.
-
-#ifdef CPPLUGINS_UNIX
-    void * library_ = nullptr;
-#elif CPPLUGINS_WINDOWS
-    HMODULE library_ = nullptr;
-#endif
+    std::optional<State> state_ = std::nullopt;
+    Flag options_ = Flag::None;
+    LIBTYPE library_ = nullptr;
     std::string library_path_;
     create_t create_ = nullptr;
     destroy_t destroy_ = nullptr;
@@ -186,4 +205,5 @@ void * cpl::make_void(f function_reference) {
     return (void *)function_reference;
 }
 
+#undef LIBTYPE // Don't leak macros
 #endif //CPPLUGINS_CPPLUGINS_HPP

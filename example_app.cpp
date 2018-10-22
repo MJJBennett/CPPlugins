@@ -8,11 +8,8 @@ int get_application_version() {
 
 int main() {
     std::string plugin_path = "./lib/example1/libExampleLibrary";
-    cpl::Plugin<sample_API> plugin(cpl::dl_path(plugin_path));
+    cpl::Plugin<sample_API> plugin(cpl::dl_path(plugin_path), std::nullopt);
     plugin.load();
-#ifdef CPPLUGINS_DEBUG
-    plugin.print_state();
-#endif
     plugin->set("get_application_version", cpl::make_void(get_application_version));
     plugin->init();
     std::cout << "Plugin ID: " << plugin->get_id() << std::endl;

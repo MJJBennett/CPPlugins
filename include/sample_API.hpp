@@ -21,7 +21,7 @@ public:
     virtual ~sample_API()=default;
 
     //Used to 'give' the plugin library functions from the main
-    virtual void set(std::string name, void * function) {
+    virtual void set(const std::string& name, void * function) {
         _symbols[name] = function;
     }
 
