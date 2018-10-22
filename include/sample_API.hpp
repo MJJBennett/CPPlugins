@@ -11,6 +11,7 @@ class sample_API {
 public:
     //An example method that arbitrarily processes an int then returns the result.
     virtual int process_data(int)=0;
+    virtual int add(int, int)=0;
 
     //An example method that retrieves a private field.
     virtual inline std::string get_id() {
