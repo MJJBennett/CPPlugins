@@ -15,8 +15,8 @@ void run_tests() {
     std::cout << static_cast<int>(plugin_state) << std::endl;
     test_plugin->set("get_application_version", cpl::make_void(get_application_version));
     test_plugin->init();
-    if (test_plugin->get_id() != "UNIDENTIFIED") std::cout << "Failed test." << std::endl;
-    if (test_plugin->add(4, 5) != 9) std::cout << "Failed test." << std::endl;
+    if (test_plugin->get_id() != "Sample_Plugin_1_Outdated") std::cout << "Failed test 1. Got: " << test_plugin->get_id() << std::endl;
+    if (test_plugin->add(4, 5) != 9) std::cout << "Failed test 2." << std::endl;
     std::cout << "Finished testing." << std::endl;
 }
 

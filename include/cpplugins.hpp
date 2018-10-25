@@ -49,7 +49,7 @@ namespace cpl {
     }
 
     bool operator!(Flag hs) {
-        return static_cast<bool>(hs);
+        return !static_cast<bool>(hs);
     }
 
     void AddState(std::optional<State> &state, State flag) {
