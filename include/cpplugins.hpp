@@ -1,5 +1,3 @@
-#include <utility>
-
 #ifndef CPPLUGINS_CPPLUGINS_HPP
 #define CPPLUGINS_CPPLUGINS_HPP
 
@@ -24,10 +22,10 @@
 #define CPPLUGINS_DEBUG 1
 
 namespace cpl {
-    std::string dl_path(const std::string& path);
+    std::string dl_path(const std::string &path);
 
     template<typename f>
-    void * make_void(f function_reference);
+    void *make_void(f function_reference);
 
     enum class Flag : uint8_t {
         None = 0,
