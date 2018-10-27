@@ -7,19 +7,34 @@
 #include <optional>
 #include <map>
 
+#ifdef LOAD_LIBRARY
+#warning LOAD_LIBRARY macro being redefined.
+#endif
+#ifdef LOAD_FUNCTION
+#warning LOAD_FUNCTION macro being redefined.
+#endif
+
 #if defined _WIN32
+// Windows includes
 #include <windows.h>
-#define CPPLUGINS_WINDOWS 1
-#define LIBTYPE HMODULE
+// Windows functions
+#define OS_WINDOWS 1
+#define LIBRARY_TYPE HMODULE
+#define LOAD_LIBRARY(x) LoadLibrary(x)
+#define LOAD_FUNCTION(x, y) GetProcAddress(x, y)
+
 #elif defined __APPLE__ || __linux__ || __unix__
+// POSIX includes
 #include <dlfcn.h>
-#define CPPLUGINS_UNIX 1
-#define LIBTYPE void *
+// POSIX functions
+#define OS_UNIX 1
+#define LIBRARY_TYPE void *
+#define LOAD_LIBRARY(x) dlopen(x, RTLD_LAZY)
+#define LOAD_FUNCTION(x, y) dlsym(x, y)
+
 #else
 #error "Your compiler or operating system is not recognized."
 #endif
-
-#define CPPLUGINS_DEBUG 1
 
 namespace cpl {
     std::string dl_path(const std::string &path);
@@ -80,11 +95,7 @@ public: // Public member functions.
     // Load
     void load() {
         // Attempt to open the library
-#ifdef CPPLUGINS_UNIX
-        library_ = dlopen(library_path_.c_str(), RTLD_LAZY);
-#elif CPPLUGINS_WINDOWS
-        library_ = LoadLibrary(library_path_.c_str());
-#endif
+        library_ = LOAD_LIBRARY(library_path_.c_str());
 
         if (!library_) {
             AddState(state_, State::Library_Not_Found);
@@ -92,11 +103,7 @@ public: // Public member functions.
         }
 
         // Attempt to find the 'create' function
-#ifdef CPPLUGINS_UNIX
-        create_ = reinterpret_cast<create_t> (dlsym(library_, "create"));
-#elif CPPLUGINS_WINDOWS
-        create_ = reinterpret_cast<create_t> (GetProcAddress(library_, "create"));
-#endif
+        create_ = reinterpret_cast<create_t> (LOAD_FUNCTION(library_, "create"));
 
         if (!create_) {
             AddState(state_, State::Create_Not_Found);
@@ -105,11 +112,7 @@ public: // Public member functions.
         }
 
         // Attempt to find the 'delete' function
-#ifdef CPPLUGINS_UNIX
-        destroy_ = reinterpret_cast<destroy_t > (dlsym(library_, "destroy"));
-#elif CPPLUGINS_WINDOWS
-        destroy_ = reinterpret_cast<destroy_t > (GetProcAddress(library_, "destroy"));
-#endif
+        destroy_ = reinterpret_cast<destroy_t > (LOAD_FUNCTION(library_, "destroy"));
 
         if (!destroy_) {
             AddState(state_, State::Destroy_Not_Found);
@@ -145,18 +148,18 @@ public: // Public member functions.
 
 private: // Private helper functions.
 
-    inline void _close_unsafe(LIBTYPE lib) {
-#ifdef CPPLUGINS_UNIX
+    inline void _close_unsafe(LIBRARY_TYPE  lib) {
+#ifdef OS_UNIX
         dlclose(lib);
-#elif CPPLUGINS_WINDOWS
+#elif OS_WINDOWS
         FreeLibrary(lib);
 #endif
     }
 
     inline std::string get_error() {
-#ifdef CPPLUGINS_UNIX
+#ifdef OS_UNIX
         return dlerror();
-#elif CPPLUGINS_WINDOWS
+#elif OS_WINDOWS
         //The following code is taken directly from Jamin Grey's answer here:
         //https://stackoverflow.com/questions/1387064/how-to-get-the-error-message-from-the-error-code-returned-by-getlasterror
         //Returns the last Win32 error, in string format. Returns an empty string if there is no error.
@@ -181,7 +184,7 @@ private: // Private helper functions.
 private: // Private member variables.
     std::optional<State> state_ = std::nullopt;
     Flag options_ = Flag::None;
-    LIBTYPE library_ = nullptr;
+    LIBRARY_TYPE  library_ = nullptr;
     std::string library_path_;
     create_t create_ = nullptr;
     destroy_t destroy_ = nullptr;
@@ -191,9 +194,9 @@ private: // Private member variables.
 }
 
 std::string cpl::dl_path(const std::string& path) {
-#ifdef CPPLUGINS_WINDOWS
+#ifdef OS_WINDOWS
     return path + ".dll";
-#elif CPPLUGINS_UNIX
+#elif OS_UNIX
     return path + ".so";
 #endif
 }
@@ -203,5 +206,10 @@ void * cpl::make_void(f function_reference) {
     return (void *)function_reference;
 }
 
-#undef LIBTYPE // Don't leak macros
+// Don't leak macros
+#undef OS_WINDOWS
+#undef OS_UNIX
+#undef LIBRARY_TYPE
+#undef LOAD_LIBRARY
+#undef LOAD_FUNCTION
 #endif //CPPLUGINS_CPPLUGINS_HPP
