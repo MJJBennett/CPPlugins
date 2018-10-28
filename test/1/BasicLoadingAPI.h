@@ -3,9 +3,10 @@
 
 class BasicLoading {
 public:
+    explicit BasicLoading(int state) : state_(state) {}
     virtual ~BasicLoading()= default;
-    virtual int get_state();
-private:
+    virtual int get_state() = 0;
+protected:
     int state_ = 1;
 };
 

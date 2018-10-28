@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.9.0)
 
 add_subdirectory(lib)
+add_subdirectory(test)
 
 project(CPPlugins VERSION 1.0.0 DESCRIPTION "An example project using CPPlugins.")
 

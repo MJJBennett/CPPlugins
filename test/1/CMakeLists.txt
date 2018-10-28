@@ -3,7 +3,7 @@ project(Test1Exe VERSION 0.1.0 DESCRIPTION "A test for basic loading of a librar
 
 # include_directories("${CMAKE_SOURCE_DIR}/include/")
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include/cpplugins.hpp)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include/)
 
 add_library(Test1Lib SHARED ${CMAKE_CURRENT_SOURCE_DIR}/BasicLoadingLib.cpp
                             ${CMAKE_CURRENT_SOURCE_DIR}/BasicLoadingLib.h)

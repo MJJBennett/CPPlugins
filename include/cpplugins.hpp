@@ -86,14 +86,16 @@ class Plugin {
 public: // Public member functions.
 
     // Constructor
-    explicit Plugin(std::string library_path, Flag options = Flag::None) :
+    template<typename ... Arg_Ts>
+    explicit Plugin(std::string library_path, Flag options, Arg_Ts... args) :
             options_(options), library_path_(std::move(library_path)) {
         if (!(options_ & Flag::Late_Load))
-            load();
+            load(std::forward<Arg_Ts...>(args...));
     }
 
     // Load
-    void load() {
+    template<typename ... Arg_Ts>
+    void load(Arg_Ts... args) {
         // Attempt to open the library
         library_ = LOAD_LIBRARY(library_path_.c_str());
 
@@ -112,7 +114,7 @@ public: // Public member functions.
         }
 
         // Attempt to find the 'delete' function
-        destroy_ = reinterpret_cast<destroy_t > (LOAD_FUNCTION(library_, "destroy"));
+        destroy_ = reinterpret_cast<destroy_t> (LOAD_FUNCTION(library_, "destroy"));
 
         if (!destroy_) {
             AddState(state_, State::Destroy_Not_Found);
@@ -121,7 +123,7 @@ public: // Public member functions.
         }
 
         //Now, load the API
-        api_ = create_();
+        api_ = create_(std::forward<Arg_Ts...>(args...));
         if (!api_) {
             AddState(state_, State::API_Not_Found);
             _close_unsafe(library_);

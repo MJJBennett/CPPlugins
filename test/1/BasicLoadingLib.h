@@ -3,11 +3,17 @@
 
 #include "BasicLoadingAPI.h"
 
-class BasicLoadingLib {
+class BasicLoadingLib : public BasicLoading {
 public:
-    BasicLoadingLib(int state) : state_(state);
+    explicit BasicLoadingLib(int state) : BasicLoading(state) {}
     int get_state() override;
 };
+
+
+extern "C" {
+BasicLoading *create(int state);
+void destroy(BasicLoading * obj);
+}
 
 
 #endif //CPPLUGINS_BASICLOADINGLIB_H
