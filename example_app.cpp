@@ -9,7 +9,7 @@ int get_application_version() {
 void run_tests() {
     std::cout << "Starting testing." << std::endl;
     std::string test_path = "./lib/test1/libTestLibrary1";
-    cpl::Plugin<sample_API> test_plugin(cpl::dl_path(test_path));
+    cpl::Plugin<sample_API> test_plugin(cpl::dl_path(test_path), cpl::Flag::None);
     if (!test_plugin.is_init()) std::cout << "Could not initialize the library." << std::endl;
     std::cout << static_cast<int>(test_plugin.get_state()) << std::endl;
     test_plugin->set("get_application_version", cpl::make_void(get_application_version));
