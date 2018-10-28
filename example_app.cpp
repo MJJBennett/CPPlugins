@@ -9,10 +9,9 @@ int get_application_version() {
 void run_tests() {
     std::cout << "Starting testing." << std::endl;
     std::string test_path = "./lib/test1/libTestLibrary1";
-    cpl::State plugin_state{};
-    cpl::Plugin<sample_API> test_plugin(cpl::dl_path(test_path), plugin_state);
+    cpl::Plugin<sample_API> test_plugin(cpl::dl_path(test_path));
     if (!test_plugin.is_init()) std::cout << "Could not initialize the library." << std::endl;
-    std::cout << static_cast<int>(plugin_state) << std::endl;
+    std::cout << static_cast<int>(test_plugin.get_state()) << std::endl;
     test_plugin->set("get_application_version", cpl::make_void(get_application_version));
     test_plugin->init();
     if (test_plugin->get_id() != "Sample_Plugin_1_Outdated") std::cout << "Failed test 1. Got: " << test_plugin->get_id() << std::endl;

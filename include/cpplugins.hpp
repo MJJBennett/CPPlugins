@@ -22,6 +22,8 @@
 #define LIBRARY_TYPE HMODULE
 #define LOAD_LIBRARY(x) LoadLibrary(x)
 #define LOAD_FUNCTION(x, y) GetProcAddress(x, y)
+#define CLOSE_LIBRARY(x) FreeLibrary(x)
+#define DLL_EXT ".dll"
 
 #elif defined __APPLE__ || __linux__ || __unix__
 // POSIX includes
@@ -31,6 +33,8 @@
 #define LIBRARY_TYPE void *
 #define LOAD_LIBRARY(x) dlopen(x, RTLD_LAZY)
 #define LOAD_FUNCTION(x, y) dlsym(x, y)
+#define CLOSE_LIBRARY(x) dlclose(x)
+#define DLL_EXT ".so"
 
 #else
 #error "Your compiler or operating system is not recognized."
@@ -65,12 +69,8 @@ namespace cpl {
         return !static_cast<bool>(hs);
     }
 
-    void AddState(std::optional<State> &state, State flag) {
-        if (!state) {
-            state = State{flag};
-        } else {
-            state = static_cast<State>(static_cast<uint32_t>(*state) & static_cast<uint32_t>(flag));
-        }
+    void AddState(State &state, State flag) {
+        state = static_cast<State>(static_cast<uint32_t>(state) & static_cast<uint32_t>(flag));
     }
 }
 
@@ -86,8 +86,8 @@ class Plugin {
 public: // Public member functions.
 
     // Constructor
-    explicit Plugin(std::string library_path, std::optional<State> state, Flag options = Flag::None) :
-            state_(std::move(state)), options_(options), library_path_(std::move(library_path)) {
+    explicit Plugin(std::string library_path, Flag options = Flag::None) :
+            options_(options), library_path_(std::move(library_path)) {
         if (!(options_ & Flag::Late_Load))
             load();
     }
@@ -129,6 +129,10 @@ public: // Public member functions.
         }
     }
 
+    const State& get_state() const {
+        return state_;
+    }
+
     API_T * operator->() const {
         return api_;
     }
@@ -142,18 +146,14 @@ public: // Public member functions.
         }
     }
 
-    inline bool is_init() {
+    inline bool is_init() const {
         return library_ && create_ && destroy_ && api_;
     }
 
 private: // Private helper functions.
 
-    inline void _close_unsafe(LIBRARY_TYPE  lib) {
-#ifdef OS_UNIX
-        dlclose(lib);
-#elif OS_WINDOWS
-        FreeLibrary(lib);
-#endif
+    inline void _close_unsafe(LIBRARY_TYPE lib) {
+        CLOSE_LIBRARY(lib);
     }
 
     inline std::string get_error() {
@@ -182,7 +182,7 @@ private: // Private helper functions.
     }
 
 private: // Private member variables.
-    std::optional<State> state_ = std::nullopt;
+    State state_ = State::Success;
     Flag options_ = Flag::None;
     LIBRARY_TYPE  library_ = nullptr;
     std::string library_path_;
@@ -194,11 +194,7 @@ private: // Private member variables.
 }
 
 std::string cpl::dl_path(const std::string& path) {
-#ifdef OS_WINDOWS
-    return path + ".dll";
-#elif OS_UNIX
-    return path + ".so";
-#endif
+    return path + DLL_EXT;
 }
 
 template<typename f>
@@ -212,4 +208,6 @@ void * cpl::make_void(f function_reference) {
 #undef LIBRARY_TYPE
 #undef LOAD_LIBRARY
 #undef LOAD_FUNCTION
+#undef CLOSE_LIBRARY
+#undef DLL_EXT
 #endif //CPPLUGINS_CPPLUGINS_HPP
