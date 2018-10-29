@@ -70,7 +70,7 @@ namespace cpl {
     }
 
     void AddState(State &state, State flag) {
-        state = static_cast<State>(static_cast<uint32_t>(state) & static_cast<uint32_t>(flag));
+        state = static_cast<State>(static_cast<uint32_t>(state) | static_cast<uint32_t>(flag));
     }
 }
 
@@ -90,11 +90,11 @@ public: // Public member functions.
     explicit Plugin(std::string library_path, Flag options, Arg_Ts... args) :
             options_(options), library_path_(std::move(library_path)) {
         if (!(options_ & Flag::Late_Load))
-            load(std::forward<Arg_Ts...>(args...));
+            load(std::forward<Arg_Ts>(args)...);
     }
 
     // Load
-    template<typename ... Arg_Ts>
+    template<typename... Arg_Ts>
     void load(Arg_Ts... args) {
         // Attempt to open the library
         library_ = LOAD_LIBRARY(library_path_.c_str());
@@ -123,7 +123,7 @@ public: // Public member functions.
         }
 
         //Now, load the API
-        api_ = create_(std::forward<Arg_Ts...>(args...));
+        api_ = create_(std::forward<Arg_Ts>(args)...);
         if (!api_) {
             AddState(state_, State::API_Not_Found);
             _close_unsafe(library_);
