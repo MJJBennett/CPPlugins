@@ -78,7 +78,8 @@ namespace cpl {
 template<typename API_T>
 class Plugin {
     // Function used to create an instance of the API
-    using create_t = API_T * (*) ();
+    template<typename... Arg_Ts>
+    using create_t = API_T * (*) (Arg_Ts...);
 
     // Function used to destroy an instance of the API
     using destroy_t = void(*) (API_T*);
@@ -105,7 +106,7 @@ public: // Public member functions.
         }
 
         // Attempt to find the 'create' function
-        create_ = reinterpret_cast<create_t> (LOAD_FUNCTION(library_, "create"));
+        create_ = reinterpret_cast<create_t<Arg_Ts...>> (LOAD_FUNCTION(library_, "create"));
 
         if (!create_) {
             AddState(state_, State::Create_Not_Found);
