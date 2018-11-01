@@ -75,11 +75,10 @@ namespace cpl {
 }
 
 namespace cpl {
-template<typename API_T>
+template<typename API_T, typename... Constructor_Ts>
 class Plugin {
     // Function used to create an instance of the API
-    template<typename... Arg_Ts>
-    using create_t = API_T * (*) (Arg_Ts...);
+    using create_t = API_T * (*) (Constructor_Ts...);
 
     // Function used to destroy an instance of the API
     using destroy_t = void(*) (API_T*);
@@ -87,11 +86,10 @@ class Plugin {
 public: // Public member functions.
 
     // Constructor
-    template<typename ... Arg_Ts>
-    explicit Plugin(std::string library_path, Flag options, Arg_Ts... args) :
+    explicit Plugin(std::string library_path, Flag options, Constructor_Ts... args) :
             options_(options), library_path_(std::move(library_path)) {
         if (!(options_ & Flag::Late_Load))
-            load(std::forward<Arg_Ts>(args)...);
+            load(std::forward<Constructor_Ts>(args)...);
     }
 
     // Load
@@ -106,7 +104,7 @@ public: // Public member functions.
         }
 
         // Attempt to find the 'create' function
-        create_ = reinterpret_cast<create_t<Arg_Ts...>> (LOAD_FUNCTION(library_, "create"));
+        create_ = reinterpret_cast<create_t> (LOAD_FUNCTION(library_, "create"));
 
         if (!create_) {
             AddState(state_, State::Create_Not_Found);
