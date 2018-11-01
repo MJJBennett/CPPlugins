@@ -20,7 +20,8 @@ include_directories("${CMAKE_SOURCE_DIR}/include/")
 
 add_executable(CPPlugins
         include/cpplugins.hpp
-        example_app.cpp)
+        example_app.cpp
+        test/testing.hpp)
 
 if(WIN32)
 
