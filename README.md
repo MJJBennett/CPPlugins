@@ -20,6 +20,6 @@ Users that want to create a plugin should write a class that inherits from `API_
 
 To build a plugin using CMake, use `add_library([Project Name] SHARED [Source files])`. See example in `lib/example1`.
 
-To load a plugin for your application using RAII, create a `cpl::Plugin<API_T>` and pass in the path to the library to be loaded.
+To load a plugin for your application using RAII, create a `cpl::Plugin<API_T, ...Constructor_Ts>` and pass in the path to the library to be loaded, flags (or just `cpl::Flag::None`), and a number of arguments to be made to the constructor equal to the number of types specified with `...Constructor_Ts`. 
 
 Check for state using `is_init` or `get_state`. If the state is good, access the plugin methods using `->`.
