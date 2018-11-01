@@ -134,6 +134,11 @@ public: // Public member functions.
         return state_;
     }
 
+    template<typename state_t>
+    state_t get_state() const {
+        return static_cast<state_t>(state_);
+    }
+
     API_T * operator->() const {
         return api_;
     }
